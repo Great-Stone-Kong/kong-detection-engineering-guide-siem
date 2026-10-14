@@ -1,0 +1,3394 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Demo UI",
+      "tooltip": "",
+      "type": "link",
+      "url": "http://localhost:3071"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "Overview — Cyber posture",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "0–100. See Scoring criteria on the right for weights and caps.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "blue",
+                "value": 20
+              },
+              {
+                "color": "yellow",
+                "value": 40
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "minmaxShow": true,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "((((sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range])) or vector(0))) > bool 40) * 40 + (((sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range])) or vector(0))) <= bool 40) * ((sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range])) or vector(0)))) + (((2*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__range])) or vector(0))) > bool 20) * 20 + ((2*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__range])) or vector(0))) <= bool 20) * (2*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__range])) or vector(0)))) + (((5*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)(python-requests|curl/|siem-bot)` [$__range])) or vector(0))) > bool 20) * 20 + ((5*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)(python-requests|curl/|siem-bot)` [$__range])) or vector(0))) <= bool 20) * (5*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)(python-requests|curl/|siem-bot)` [$__range])) or vector(0)))) + (((10*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)` [$__range])) or vector(0))) > bool 20) * 20 + ((10*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)` [$__range])) or vector(0))) <= bool 20) * (10*(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)` [$__range])) or vector(0))))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Risk alert score",
+      "type": "gauge",
+      "transformations": []
+    },
+    {
+      "gridPos": {
+        "h": 7,
+        "w": 5,
+        "x": 4,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Risk alert score (0–100)**\n\nBased on siem-demo http-log in the selected time range (`$__range`).\n\n| Item | Points | Cap |\n|------|--------|-----|\n| Auth failure 401/403 | 1 / event | **40** |\n| Rate limit 429 | 2 / event | **20** |\n| Script UA | 5 / event | **20** |\n| URI traversal | 10 / event | **20** |\n| **Total** | | **100** |\n\n**Levels** — 0–19 normal · 20–39 watch · 40–59 caution · 60–79 elevated · 80–100 critical\n",
+        "mode": "markdown"
+      },
+      "title": "Scoring criteria",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "All siem-demo http-log events",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Risk events",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "401/403 + URI attacks + bulk 200",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "(sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range])) or vector(0)) + (sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)` [$__range])) or vector(0)) + (sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |= `/bulk` | json | response_status=`200` [$__range])) or vector(0))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "High-risk attempts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth failures",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "429 rate limit",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "0 may indicate visibility gap (KG-API-009)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/heartbeat` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Heartbeat",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 4,
+        "w": 15,
+        "x": 9,
+        "y": 4
+      },
+      "id": 9,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Kong SIEM** — `siem-demo`\n\n- Demo UI: set `SIEM_UI_PORT` (default 3071)\n- Geomap: demo coordinate headers (production: GeoIP)\n- Rows below: scenario text + charts + logs\n",
+        "mode": "markdown"
+      },
+      "title": "Ops notes",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 10,
+      "title": "Trends — HTTP status",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Share of 401/403, 429, 200, and heartbeat in the selected range",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "custom": {}
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "401/403"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "429"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF9830",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "200"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73BF69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "heartbeat"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#5794F2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 7,
+        "x": 0,
+        "y": 9
+      },
+      "id": 11,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range]))",
+          "queryType": "instant",
+          "refId": "A",
+          "legendFormat": "401/403"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__range]))",
+          "queryType": "instant",
+          "refId": "B",
+          "legendFormat": "429"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__range]))",
+          "queryType": "instant",
+          "refId": "C",
+          "legendFormat": "200"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/heartbeat` [$__range]))",
+          "queryType": "instant",
+          "refId": "D",
+          "legendFormat": "heartbeat"
+        }
+      ],
+      "title": "Status mix (range total)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 75,
+            "gradientMode": "scheme",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "401/403"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "429"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF9830",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "200"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73BF69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "heartbeat"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#5794F2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 17,
+        "x": 7,
+        "y": 9
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "401/403"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "429"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "C",
+          "legendFormat": "200"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/heartbeat` [$__interval]))",
+          "queryType": "range",
+          "refId": "D",
+          "legendFormat": "heartbeat"
+        }
+      ],
+      "title": "Status trend — stacked bars",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Source geography for SIEM events. Private Docker IPs cannot use MaxMind; the demo uses X-Demo-Lat/Lon/Country headers.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 14,
+        "x": 0,
+        "y": 19
+      },
+      "id": 13,
+      "options": {
+        "basemap": {
+          "name": "OpenStreetMap",
+          "type": "osm-standard",
+          "config": {}
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Threat origins",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "Value",
+                  "fixed": "dark-red"
+                },
+                "opacity": 0.85,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "Value",
+                  "fixed": 8,
+                  "max": 30,
+                  "min": 6
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
+            "tooltip": true,
+            "filterData": {
+              "id": "byRefId",
+              "options": "A"
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "coords",
+          "lat": 25,
+          "lon": 80,
+          "zoom": 1.4
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (lat, lon, country) (count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |= `x-demo-lat` | regexp `x-demo-lat\":\"(?P<lat>[^\"]+)` | regexp `x-demo-lon\":\"(?P<lon>[^\"]+)` | regexp `x-demo-country\":\"(?P<country>[^\"]+)` [$__range]))",
+          "queryType": "instant",
+          "refId": "A",
+          "legendFormat": "{{country}}"
+        }
+      ],
+      "title": "Global threat map (source)",
+      "type": "geomap"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 55,
+            "gradientMode": "scheme",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 10,
+        "x": 14,
+        "y": 19
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (country) (count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |= `x-demo-lat` | regexp `x-demo-lat\":\"(?P<lat>[^\"]+)` | regexp `x-demo-lon\":\"(?P<lon>[^\"]+)` | regexp `x-demo-country\":\"(?P<country>[^\"]+)` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "{{country}}"
+        }
+      ],
+      "title": "Events by country (TOP)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 55,
+            "gradientMode": "scheme",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 10,
+        "x": 14,
+        "y": 24
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (client_ip) (count_over_time({log_source=\"http-log\"} |= `/siem-demo/` | json [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "{{client_ip}}"
+        }
+      ],
+      "title": "Attacker TOP — client_ip",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 16,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent SIEM events (all)",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 17,
+      "title": "KG-API-001 — Auth failure burst (credential stuffing)",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "id": 18,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Many calls to the sensitive API (`/siem-demo/loan/customers`) with a **bad apikey** in a short window\n\n**Why it matters** — Key/token stuffing or automated auth probing. Higher priority when consumer is null and one IP dominates\n\n**What to look for** — Spike in **401/403** on the right totals/trend, skewed bars by client_ip, consecutive failures in logs\n\n**Response** — Block IP/UA, review bot-detection and key rollover. If 200 follows, escalate to **001b / 007**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 37
+      },
+      "id": 19,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "401/403 total",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 37
+      },
+      "id": 20,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-001` → **Run** / **Evaluate**\n\n**Fired (demo)** — 401/403 ≥ 10 within ~2m\n\n**Response type** — A (account/session)",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "401/403"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (client_ip) (count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "{{client_ip}}"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "id": 22,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 49
+      },
+      "id": 23,
+      "title": "KG-API-001b — Fail then success",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 50
+      },
+      "id": 24,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — A streak of **401/403** followed by **200** on the same sensitive route\n\n**Why it matters** — Valid credentials obtained after guessing/stuffing, or session takeover (DE-002-like)\n\n**What to look for** — Trend shows fail curve then success(200). Confirm same client_ip timeline in logs\n\n**Response** — Revoke the consumer key, check IdP sessions. If ID walk or bulk follows → **007**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 50
+      },
+      "id": 25,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "401/403 total",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 50
+      },
+      "id": 26,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-001b` → **Run** / **Evaluate**\n\n**Fired (demo)** — fails ≥ 3 then success ≥ 1\n\n**Response type** — A",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 55
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "fail"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "success"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 55
+      },
+      "id": 28,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "id": 29,
+      "title": "KG-API-002 — BOLA / ID enumeration",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 63
+      },
+      "id": 30,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Many **distinct IDs** on `/customers/{id}` with a valid key in a short window\n\n**Why it matters** — Object-level authz flaw (BOLA) or automated browsing when the app returns others' data by ID alone\n\n**What to look for** — Surge of customers **200**, sequential/scattered IDs in URI logs (demo: distinct-ID threshold)\n\n**Response** — Ticket app authz review. Tighten ACL/OPA/validator/limits. Large volume → **005**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 12
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 63
+      },
+      "id": 31,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "customers 200",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 63
+      },
+      "id": 32,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-002` → **Run** / **Evaluate**\n\n**Fired (demo)** — distinct customer id ≥ 12 / 2m\n\n**Response type** — F (+A)",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "200"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 68
+      },
+      "id": 34,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` |~ `/customers/[0-9]+`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 75
+      },
+      "id": 35,
+      "title": "KG-API-003 — Rate limit exceeded",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 76
+      },
+      "id": 36,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Consumer-scoped RLA exceeded → **429**\n\n**Why it matters** — Automated scraping/abuse or batch surge. Without limits the same pattern can become quiet exfil\n\n**What to look for** — 429 total/trend spikes. Interleaved 200 and 429 means collection up to the limit\n\n**Response** — Revisit limit and identifier (consumer). Sensitive route with no limit → correlate with **006**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 76
+      },
+      "id": 37,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "429 total",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 76
+      },
+      "id": 38,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-003` → **Run** / **Evaluate**\n\n**Fired (demo)** — 429 ≥ 1\n\n**Response type** — F",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 81
+      },
+      "id": 39,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "429"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "200"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 81
+      },
+      "id": 40,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`429`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      },
+      "id": 41,
+      "title": "KG-API-004 — Bot / script UA",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 89
+      },
+      "id": 42,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Non-browser UA (`python-requests` / `curl` / `siem-bot`) on a sensitive route\n\n**Why it matters** — Script/bot automation. In production, AND with GeoIP/ASN when possible\n\n**What to look for** — Script UA total, per-UA trend, User-Agent in logs\n\n**Response** — Allowlist approved batch UAs. Otherwise bot-detection and IP restriction",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 89
+      },
+      "id": 43,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)(python-requests|curl/|siem-bot)` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Script UA",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 89
+      },
+      "id": 44,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-004` → **Run** / **Evaluate**\n\n**Fired (demo)** — matching UA ≥ 1\n\n**Response type** — F",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 94
+      },
+      "id": 45,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)python-requests` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "python-requests"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)curl/` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "curl"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)siem-bot` [$__interval]))",
+          "queryType": "range",
+          "refId": "C",
+          "legendFormat": "siem-bot"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 94
+      },
+      "id": 46,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `(?i)(python-requests|curl/|siem-bot)`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 101
+      },
+      "id": 47,
+      "title": "KG-API-005 — Mass / high-volume exfil",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 102
+      },
+      "id": 48,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Repeated **large 200** responses (e.g. `/customers/{id}/bulk`) for the same identity\n\n**Why it matters** — Sensitive data collection via API (DE-071/073 mapped to gateway fields)\n\n**What to look for** — bulk 200 count, response size sum, bulk share vs all 200\n\n**Response** — Disable consumer, RLA 0, estimate impact. With prior auth anomaly → **007**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 102
+      },
+      "id": 49,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |= `/bulk` | json | response_status=`200` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "bulk 200",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 102
+      },
+      "id": 50,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-005` → **Run** / **Evaluate**\n\n**Fired (demo)** — count ≥ 5 or bytes sum ≥ ~400KB\n\n**Response type** — I (+A)",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 107
+      },
+      "id": 51,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |= `/bulk` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "bulk 200"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "all 200"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 107
+      },
+      "id": 52,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers` |= `/bulk` | json | response_status=`200`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 114
+      },
+      "id": 53,
+      "title": "KG-API-006 — Sensitive route control gap",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 115
+      },
+      "id": 54,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Sensitive path (loan/customer) with **no auth or rate-limit plugin** (demo: `/siem-demo/loan/open`)\n\n**Why it matters** — Config/exposure gap to close before traffic alerts (DE-088-like). Not the same as KEV (DE-086)\n\n**What to look for** — open-route call logs + UI **Evaluate** Admin scan gaps (auth/limit missing)\n\n**Response** — Enforce auth + RLA via decK/CI. Remove the gap route or attach protective plugins",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 115
+      },
+      "id": 55,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/open` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "open route hits",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 115
+      },
+      "id": 56,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-006` → **Run** (visibility) / **Evaluate** (Admin scan)\n\n**Fired** — sensitive path missing auth or RLA\n\n**Response type** — F (config)",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 120
+      },
+      "id": 57,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/open` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "open"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 120
+      },
+      "id": 58,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/open`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 127
+      },
+      "id": 59,
+      "title": "KG-API-007 — Auth anomaly → mass-read chain",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 128
+      },
+      "id": 60,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — **001/001b** fires, then **002 or 005** within a short window\n\n**Why it matters** — **Attack chain**: stuffing/theft followed by mass reads (merge as one incident)\n\n**What to look for** — Auth-fail trend and bulk-200 trend rise in the same window\n\n**Response** — Revoke credentials, block IP, temporary route limit. Case types **C+A+I**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 128
+      },
+      "id": 61,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__range])) + sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |= `/bulk` | json | response_status=`200` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Chain signal (401+bulk)",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 128
+      },
+      "id": 62,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-007` → **Run** / **Evaluate**\n\n**Fired** — 001 (or 001b) AND 005 together\n\n**Response type** — C + A + I",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 133
+      },
+      "id": 63,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` | json | response_status=`401` or response_status=`403` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "auth fail"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/loan/customers` |= `/bulk` | json | response_status=`200` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "bulk 200"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 133
+      },
+      "id": 64,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/loan/customers` |~ `/loan/customers`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 140
+      },
+      "id": 65,
+      "title": "KG-API-008 — URI traversal / metachar",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 141
+      },
+      "id": 66,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Request URI contains path-manipulation / encoding signatures such as `../`, `%2e%2e`\n\n**Why it matters** — Edge/app attack attempt (DE-046/047-like). Escalate if success or large response\n\n**What to look for** — Signature match count/trend and request.uri in logs\n\n**Response** — validator/WAF and IP block. Normalize paths and review app authz",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 141
+      },
+      "id": 67,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Signature matches",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 141
+      },
+      "id": 68,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI `KG-API-008` → **Run** / **Evaluate**\n\n**Fired (demo)** — URI signature ≥ 1\n\n**Response type** — F",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 146
+      },
+      "id": 69,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "traversal"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 146
+      },
+      "id": 70,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/` |~ `(?i)(\\.\\./|%2e%2e)`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 153
+      },
+      "id": 71,
+      "title": "KG-API-009 — Heartbeat silence (detection health)",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 154
+      },
+      "id": 72,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**What** — Proxy is up but **heartbeat http-log stops** (intentional Heartbeat OFF demo)\n\n**Why it matters** — Detection/telemetry gap (DE-091). Loss of visibility is the incident—not an attack payload\n\n**What to look for** — Heartbeat line = 0 (red) while other siem traffic / proxy may still look healthy\n\n**Response** — Restore http-log/Fluent/Loki and hunt the blind window. Response type **J**",
+        "mode": "markdown"
+      },
+      "title": "Scenario",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 154
+      },
+      "id": 73,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/heartbeat` [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Heartbeat lines",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 154
+      },
+      "id": 74,
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false
+        },
+        "content": "**Demo** — UI Heartbeat OFF or `KG-API-009` **Run** / **Evaluate**\n\n**Fired (demo)** — ≥15s silence, 0 events on route, proxy up\n\n**Response type** — J",
+        "mode": "markdown"
+      },
+      "title": "Verdict",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2,
+            "barAlignment": 0,
+            "barWidthFactor": 0.85,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 159
+      },
+      "id": 75,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/heartbeat` [$__interval]))",
+          "queryType": "range",
+          "refId": "A",
+          "legendFormat": "heartbeat"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({log_source=\"http-log\"} |= `/siem-demo/` [$__interval]))",
+          "queryType": "range",
+          "refId": "B",
+          "legendFormat": "all siem"
+        }
+      ],
+      "title": "Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 159
+      },
+      "id": 76,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{log_source=\"http-log\"} |= `/siem-demo/heartbeat`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Related logs",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": [
+    "kong",
+    "siem",
+    "siem-demo",
+    "detection"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kong SIEM Detection (siem-demo)",
+  "uid": "kong-siem-detection",
+  "version": 2
+}

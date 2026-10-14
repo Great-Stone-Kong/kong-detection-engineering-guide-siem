@@ -1,0 +1,83 @@
+_format_version: "3.0"
+_info:
+  select_tags:
+    - siem-demo
+
+# Workspace-scoped http-log (default-workspace global plugins do not cover other workspaces).
+# http_endpoint: set to your log collector (Fluent Bit, Vector, SIEM HTTP input, …).
+plugins:
+  - name: http-log
+    tags: [siem-demo]
+    config:
+      http_endpoint: http://fluent-bit:8888
+      method: POST
+      content_type: application/json
+      timeout: 10000
+      keepalive: 60000
+      queue:
+        max_batch_size: 1
+        max_coalescing_delay: 1
+
+consumers:
+  - username: siem-good
+    tags: [siem-demo]
+    keyauth_credentials:
+      - key: siem-good-key
+        tags: [siem-demo]
+    acls:
+      - group: group-siem-loan
+        tags: [siem-demo]
+
+services:
+  - name: siem-demo-loan
+    url: http://siem-demo-mock:8080
+    tags: [siem-demo]
+    routes:
+      # Authenticated customer inquiry (BOLA / stuffing / RLA / UA demos)
+      - name: siem-demo-customers-route
+        tags: [siem-demo]
+        paths: [/siem-demo/loan/customers]
+        strip_path: true
+        methods: [GET]
+        protocols: [http, https]
+        plugins:
+          - name: key-auth
+            tags: [siem-demo]
+            config:
+              key_names: [apikey]
+              hide_credentials: true
+          - name: acl
+            tags: [siem-demo]
+            config:
+              allow: [group-siem-loan]
+          - name: rate-limiting-advanced
+            tags: [siem-demo]
+            config:
+              # High enough for sequential demos; 003 still exhausts with ~130 calls
+              limit: [25]
+              window_size: [60]
+              identifier: consumer
+              namespace: siem-demo-customers
+              sync_rate: -1
+              strategy: local
+          - name: bot-detection
+            tags: [siem-demo]
+
+      # Intentional control gap (KG-API-006) — loan-tagged path, no auth/RLA
+      - name: siem-demo-open-route
+        tags: [siem-demo]
+        paths: [/siem-demo/loan/open]
+        strip_path: true
+        methods: [GET]
+        protocols: [http, https]
+
+  - name: siem-demo-heartbeat
+    url: http://siem-demo-mock:8080
+    tags: [siem-demo]
+    routes:
+      - name: siem-demo-heartbeat-route
+        tags: [siem-demo]
+        paths: [/siem-demo/heartbeat]
+        strip_path: true
+        methods: [GET]
+        protocols: [http, https]

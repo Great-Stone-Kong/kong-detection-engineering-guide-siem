@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kong SIEM Detection Demo</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Kong http-log → collector → Loki</p>
+      <h1>SIEM Detection Demo</h1>
+    </div>
+    <div class="hb">
+      <span id="hb-label">Heartbeat</span>
+      <button type="button" id="hb-toggle" class="ghost">…</button>
+      <a class="primary-link" href="http://localhost:3000/d/kong-siem-detection" target="_blank" rel="noreferrer">SIEM Dashboard</a>
+      <a class="ghost" href="http://localhost:3000" target="_blank" rel="noreferrer">Grafana</a>
+    </div>
+  </header>
+
+  <p class="lead">
+    규칙별 공격 트래픽을 재생한 뒤 Loki http-log로 판정합니다.
+    Grafana 대시보드 상단은 <strong>전체 현황</strong>, 이하는 <strong>KG-API 시나리오별</strong> 그래프·로그 섹션입니다.
+  </p>
+
+  <section class="dash-strip" aria-label="SIEM overview">
+    <a class="dash-card accent" href="http://localhost:3000/d/kong-siem-detection" target="_blank" rel="noreferrer">
+      <span class="dash-k">Overview</span><span class="dash-t">전체 현황</span>
+    </a>
+    <a class="dash-card" href="http://localhost:3000/d/kong-siem-detection?viewPanel=10" target="_blank" rel="noreferrer">
+      <span class="dash-k">001</span><span class="dash-t">인증 실패</span>
+    </a>
+    <a class="dash-card" href="http://localhost:3000/d/kong-siem-detection" target="_blank" rel="noreferrer">
+      <span class="dash-k">002</span><span class="dash-t">BOLA</span>
+    </a>
+    <a class="dash-card" href="http://localhost:3000/d/kong-siem-detection" target="_blank" rel="noreferrer">
+      <span class="dash-k">003</span><span class="dash-t">Rate limit</span>
+    </a>
+    <a class="dash-card" href="http://localhost:3000/d/kong-siem-detection" target="_blank" rel="noreferrer">
+      <span class="dash-k">004–009</span><span class="dash-t">시나리오 섹션</span>
+    </a>
+  </section>
+
+  <section class="mixed-panel" aria-label="Mixed validation traffic">
+    <div class="mixed-head">
+      <div>
+        <h2>혼합 검증 트래픽</h2>
+        <p>정상 고객 조회와 공격 시나리오(001~008)를 랜덤으로 섞어 보냅니다. 009 침묵은 제외합니다.</p>
+      </div>
+      <div class="mixed-controls">
+        <label>요청 수 <input id="mixed-count" type="number" min="5" max="120" value="40" /></label>
+        <label>공격 비율 <input id="mixed-ratio" type="number" min="0" max="0.9" step="0.05" value="0.45" /></label>
+        <button type="button" id="mixed-run" class="primary">혼합 실행</button>
+        <span id="mixed-badge" class="badge quiet">idle</span>
+      </div>
+    </div>
+    <pre id="mixed-out"></pre>
+  </section>
+
+  <div id="rules" class="grid"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

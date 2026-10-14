@@ -1,0 +1,73 @@
+# Mock upstream + demo UI only. Kong Gateway, Loki, Grafana are external.
+name: siem-engineering-202610
+
+services:
+  siem-demo-mock:
+    image: python:3.12-alpine
+    container_name: siem-demo-mock
+    hostname: siem-demo-mock
+    command: ["python", "/app/app.py"]
+    volumes:
+      - ./mock/app.py:/app/app.py:ro
+    networks:
+      - demo-net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  siem-demo-ui:
+    image: python:3.12-alpine
+    container_name: siem-demo-ui
+    hostname: siem-demo-ui
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install --no-cache-dir -q PyYAML==6.0.2 && python /app/app.py",
+      ]
+    ports:
+      - "${SIEM_UI_PORT:-3071}:8080"
+    environment:
+      PORT: "8080"
+      KONG_PROXY_INTERNAL: ${KONG_PROXY_INTERNAL:-http://kong-dp:8000}
+      KONG_ADMIN_INTERNAL: ${KONG_ADMIN_INTERNAL:-http://kong-cp:8001}
+      KONG_ADMIN_TOKEN: ${KONG_ADMIN_TOKEN:-}
+      DEMO_WORKSPACE: ${DEMO_WORKSPACE:-siem-demo}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100}
+      GRAFANA_URL: ${GRAFANA_URL:-http://127.0.0.1:3000}
+      DEMO_APIKEY: ${DEMO_APIKEY:-siem-good-key}
+      KONG_PROXY_HEALTH_URL: ${KONG_PROXY_HEALTH_URL:-http://kong-dp:8000/siem-demo/heartbeat}
+    volumes:
+      - ./ui/app.py:/app/app.py:ro
+      - ./ui/static:/app/static:ro
+      - ./logql/rules.yaml:/app/logql/rules.yaml:ro
+    depends_on:
+      siem-demo-mock:
+        condition: service_healthy
+    networks:
+      - demo-net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+
+networks:
+  demo-net:
+    name: ${DOCKER_NETWORK:-kong-net}
+    external: true

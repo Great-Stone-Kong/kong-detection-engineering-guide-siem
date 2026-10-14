@@ -1,0 +1,133 @@
+# Demo thresholds (shorter than production cards in the MD).
+# Loki labels from Fluent Bit: job=kong-dp, log_source=http-log
+
+defaults:
+  lookback: 5m
+  demo_header: X-Demo-Tag
+  demo_tag: siem-test
+
+rules:
+  - id: KG-API-001
+    title: Auth failure burst
+    summary: Same client_ip/route with many 401/403
+    when: "count(status IN {401,403}) BY client_ip, route >= threshold"
+    threshold: 10
+    lookback: 2m
+    kind: logql_count
+    logql: |
+      sum by (client_ip) (
+        count_over_time(
+          {log_source="http-log"}
+          | json
+          | route_name = "siem-demo-customers-route"
+          | response_status = "401" or response_status = "403"
+          | __error__ = ""
+          [2m]
+        )
+      )
+    # Fallback scanner uses raw streams when LogQL label paths differ
+    eval:
+      type: status_burst
+      route_contains: /siem-demo/loan/customers
+      statuses: [401, 403]
+      min_count: 10
+
+  - id: KG-API-001b
+    title: Fail then success
+    summary: 401/403 then 200 on same sensitive route
+    kind: sequence
+    lookback: 3m
+    eval:
+      type: fail_then_success
+      route_contains: /siem-demo/loan/customers
+      fail_statuses: [401, 403]
+      success_status: 200
+      min_fails: 3
+
+  - id: KG-API-002
+    title: BOLA ID enumeration
+    summary: Distinct customer IDs in short window
+    kind: distinct_ids
+    lookback: 2m
+    threshold: 12
+    eval:
+      type: distinct_ids
+      route_contains: /siem-demo/loan/customers
+      status: 200
+      min_distinct: 12
+      id_regex: "/customers/([^/?]+)"
+
+  - id: KG-API-003
+    title: Rate limit proximity
+    summary: 429 responses for consumer
+    kind: status_burst
+    lookback: 2m
+    eval:
+      type: status_burst
+      route_contains: /siem-demo/loan/customers
+      statuses: [429]
+      min_count: 1
+
+  - id: KG-API-004
+    title: Script UA on sensitive route
+    summary: python-requests / curl UA on loan customers
+    kind: ua_match
+    lookback: 2m
+    eval:
+      type: ua_match
+      route_contains: /siem-demo/loan/customers
+      ua_substrings: ["python-requests", "curl", "siem-bot"]
+
+  - id: KG-API-005
+    title: Mass successful exfil
+    summary: High count or large response.size on bulk path
+    kind: mass_success
+    lookback: 3m
+    eval:
+      type: mass_success
+      route_contains: /siem-demo/loan/customers
+      status: 200
+      min_count: 5
+      min_bytes_sum: 400000
+
+  - id: KG-API-006
+    title: Control gap on sensitive route
+    summary: loan path without auth or rate-limiting plugin
+    kind: admin_scan
+    eval:
+      type: admin_scan
+      sensitive_path_substrings: ["/siem-demo/loan"]
+      require_any_auth: ["key-auth", "openid-connect", "jwt", "basic-auth"]
+      require_any_limit: ["rate-limiting", "rate-limiting-advanced"]
+
+  - id: KG-API-007
+    title: Stuffing then exfil chain
+    summary: Auth burst then mass success within window
+    kind: chain
+    lookback: 5m
+    eval:
+      type: chain
+      first: KG-API-001
+      second: KG-API-005
+
+  - id: KG-API-008
+    title: URI traversal / metachar
+    summary: ../ or %2e%2e in request URI
+    kind: uri_sig
+    lookback: 2m
+    eval:
+      type: uri_sig
+      route_contains: /siem-demo/
+      patterns: ["../", "..%2f", "%2e%2e", "%2E%2E"]
+
+  - id: KG-API-009
+    title: Heartbeat http-log silence
+    summary: Expected heartbeat route EPS=0 while proxy up
+    kind: silence
+    lookback: 2m
+    eval:
+      type: silence
+      route_contains: /siem-demo/heartbeat
+      max_count: 0
+      min_silence_s: 15
+      require_proxy_up: true
