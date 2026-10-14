@@ -159,27 +159,37 @@ Safety validation expects: telemetry present, single match, enrichments filled, 
 
 ---
 
-## Rule cards (summary + LogQL)
+## Rule cards
 
-Production windows/thresholds come from baseline. Values below are **validation** examples (short windows). Full WHEN/THEN tables: see [README_KO.md](./README_KO.md) (same IDs).
+Tune production WITHIN / thresholds after a business baseline.  
+**Loki LogQL** examples below use short validation windows (2–5m).
 
-| ID | Intent | Signal | Response | Demo threshold |
-|----|--------|--------|----------|----------------|
-| 001 | Auth failure burst | 401/403 count by IP/route | A | ≥10 / 2m |
-| 001b | Fail then success | fails then 200 same route | A | ≥3 fails then 200 / 3m |
-| 002 | BOLA ID enum | distinct path IDs + 200 | F | ≥12 IDs / 2m |
-| 003 | Rate limit | 429 | F | ≥1 / 2m |
-| 004 | Script UA | python-requests/curl + sensitive route | F | UA match / 2m |
-| 005 | Mass exfil | 200 count or `sum(response.size)` | I+A | ≥5 or ≥400KB / 3m |
-| 006 | Control gap | Admin/decK missing auth or RLA | F | config scan |
-| 007 | Chain | 001 then 005 | C+A+I | within 5m |
-| 008 | URI signature | `../`, `%2e%2e` | F | pattern / 2m |
-| 009 | Telemetry silence | heartbeat EPS=0, proxy up | J | 0 / 2m |
+### KG-API-001 Auth failure burst (credential stuffing / key spray)
 
-### Example LogQL
+| Field | Content |
+|-------|---------|
+| Domain | Account / auth |
+| Response · timeline | **A**, auth-style |
+| ATT&CK | T1110 Brute Force |
+| Severity · window | High, **5m** (ops) / demo **2m · ≥10** |
+| Telemetry | Kong `http-log` |
+| Key fields | `client_ip`, `response.status`, `request.uri`, `consumer`, `request.headers.user-agent`, `route.name` |
+| **WHEN** | Same `client_ip` (or same `route`): `response.status in (401, 403)` exceeds baseline (e.g. ≥50 / 5m). Prefer when `consumer` is often null |
+| **GROUP BY** | `client_ip` + `route.name` |
+| **THEN** | High alert. If success follows on the same IP → escalate to KG-API-001b / 007 |
+| Plugins | `openid-connect` / `key-auth`, `bot-detection`, `ip-restriction` |
+| Tuning | Exclude health-check / monitor IPs. Tie post-deploy key-expiry 401s to change windows |
+| Safety check | Call with bad keys N times → one alert + test tag |
+| DE-like | DE-001 |
+
+```text
+WHEN count(status IN {401,403}) BY client_ip, route.name
+WITHIN 5m
+THRESHOLD >= baseline * 3 OR >= 50
+THEN alert high "kong_auth_failure_burst"
+```
 
 ```logql
-# KG-API-001
 sum by (client_ip) (
   count_over_time(
     {log_source="http-log"}
@@ -190,33 +200,284 @@ sum by (client_ip) (
     [2m]
   )
 )
-
-# KG-API-003
-sum(count_over_time(
-  {log_source="http-log"} |= `/loan/customers`
-  | json | response_status = "429" [2m]
-))
-
-# KG-API-008
-sum(count_over_time(
-  {log_source="http-log"} |= `/siem-demo/`
-  |~ `(?i)(\.\./|%2e%2e|\.\.%2f)` [2m]
-))
-
-# KG-API-009
-sum(count_over_time(
-  {log_source="http-log"} |= `/siem-demo/heartbeat` [2m]
-))
 ```
 
-Pseudo-logic for 001:
+Fire when the series value is ≥ 10 (demo threshold).
+
+---
+
+### KG-API-001b Fail then success (compromise / bypass precursor)
+
+| Field | Content |
+|-------|---------|
+| Domain | Account / auth |
+| Response · timeline | **A**, auth-style |
+| ATT&CK | T1110, T1078 |
+| Severity · window | High, **10m** (ops) / demo **3m · ≥3 fails then 200** |
+| **WHEN** | Same `client_ip` (or consumer candidate): consecutive `401/403` then `status=200` on the same sensitive `route` in-window |
+| **RELATE BY** | `client_ip` → `consumer` at success |
+| **THEN** | High. If ID walk or bulk follows → KG-API-007 |
+| Plugins | Auth plugin + `http-log` |
+| Tuning | Suppress normal key rotation / gateway retries |
+| Safety check | Replay fail events then one success → one correlated case |
+| DE-like | DE-002 |
 
 ```text
-WHEN count(status IN {401,403}) BY client_ip, route.name
-WITHIN 5m
-THRESHOLD >= baseline * 3 OR >= 50
-THEN alert high "kong_auth_failure_burst"
+WHEN auth_failures(ip) AND success(ip, route) WITHIN 10m
+THEN alert high "kong_auth_fail_then_success"
 ```
+
+```logql
+# failures
+{log_source="http-log"} |= `/loan/customers`
+  | json
+  | response_status = "401" or response_status = "403"
+
+# success (cross by client_ip in Explore)
+{log_source="http-log"} |= `/loan/customers`
+  | json
+  | response_status = "200"
+```
+
+Sequence correlation belongs to the SIEM rule / correlation engine.
+
+---
+
+### KG-API-002 Fast resource ID enumeration (BOLA / authz gap)
+
+| Field | Content |
+|-------|---------|
+| Domain | Web / app / collection |
+| Response · timeline | **F** (+ **A** if confirmed), endpoint-style |
+| ATT&CK | T1190; sensitive reads ≈ T1005 / T1213 via API |
+| Severity · window | **Critical**, **10m** (ops) / demo **2m · distinct ID ≥12** |
+| **WHEN** | Same `consumer` (else `client_ip`) hits many distinct resource IDs quickly. Example: `/customers/{id}` distinct `{id}` ≥ 30 / 10m with high `200` rate |
+| **GROUP BY** | `consumer.username` (else `client_ip`) + `route.name` |
+| **THEN** | Critical. Ticket app object-level authz (F) |
+| Plugins | `acl`, OPA/policy, `request-validator`, rate limit |
+| Tuning | Separate limits/allowlists for batch/settlement consumers. Extract ID via path regex |
+| Safety check | Replay sequential dummy IDs on a test route |
+| DE-like | DE-071 mapped to API path IDs (not DE-046 Path Traversal) |
+
+```text
+WHEN distinct_count(extract_id(request.uri)) BY consumer
+     WHERE status = 200 AND route IN sensitive_routes
+WITHIN 10m
+THRESHOLD >= 30
+THEN alert critical "kong_bola_id_enumeration"
+```
+
+```logql
+{log_source="http-log"} |= `/loan/customers`
+  | json
+  | response_status = "200"
+  | regexp `/customers/(?P<resource_id>[^/?]+)`
+```
+
+Aggregate `count_distinct(resource_id)` by `client_ip` or `consumer_username`.
+
+---
+
+### KG-API-003 Rate-limit proximity / exceed (automated collection)
+
+| Field | Content |
+|-------|---------|
+| Domain | Web / app |
+| Response · timeline | **F**, endpoint-style |
+| ATT&CK | T1110 (automated abuse context) |
+| Severity · window | High, **15m** (ops) / demo **2m · 429 ≥1** |
+| Telemetry | `http-log` + `X-RateLimit-*` / `RateLimit-*` |
+| **WHEN** | (a) `status=429` over threshold per consumer/IP, or (b) sustained 200s with remaining &lt; 10% of limit |
+| **GROUP BY** | `consumer` / `client_ip` |
+| **THEN** | High. If route has no limit → correlate with KG-API-006 |
+| Plugins | `rate-limiting-advanced` (`identifier: consumer`) |
+| Tuning | Peak-hour baseline. Prefer consumer over NAT IP |
+| Safety check | Exceed limit with a test consumer → 429 + one alert |
+| DE-like | Web abuse + DE-071 precursor |
+
+```logql
+sum(count_over_time(
+  {log_source="http-log"} |= `/loan/customers`
+  | json
+  | response_status = "429"
+  [2m]
+))
+```
+
+---
+
+### KG-API-004 Bot / script UA + foreign IP + sensitive route
+
+| Field | Content |
+|-------|---------|
+| Domain | Web / app / network |
+| Response · timeline | **F** (+ **E** if IOC block), endpoint-style |
+| ATT&CK | T1071, T1110 |
+| Severity · window | High, **15m** |
+| **WHEN** | Sensitive `route` with script/non-browser UA (`python-requests`, `curl`, empty UA) or `bot-detection` block, and `client_ip` in disallowed country/ASN |
+| **GROUP BY** | `client_ip` + `route.name` |
+| **THEN** | High. Overlap with 002/005 → escalate to critical |
+| Plugins | `bot-detection`, `ip-restriction`, `openid-connect` |
+| Tuning | Signed exceptions for approved batch UA / egress IPs |
+| Safety check | Call sensitive route with disallowed UA + test GeoIP |
+| DE-like | Public-edge abuse; URI tampering → KG-API-008 / DE-046·047 |
+
+```logql
+{log_source="http-log"} |= `/loan/customers`
+  | json
+  | line_format `{{.request_headers_user_agent}}`
+  |~ `(?i)(python-requests|curl|siem-bot)`
+```
+
+In production, AND with GeoIP `country` / `asn`.
+
+---
+
+### KG-API-005 Same-identity mass / high-byte success (exfil)
+
+| Field | Content |
+|-------|---------|
+| Domain | Data collection / exfil |
+| Response · timeline | **I** (+ **A**), correlation-style |
+| ATT&CK | T1005-like via API |
+| Severity · window | **Critical**, **30m** (ops) / demo **3m · count ≥5 or bytes ≥400KB** |
+| **WHEN** | Same `consumer` on sensitive route with `status=200` and (a) count ≥ threshold or (b) `sum(response.size)` ≥ threshold (e.g. 50MB or 500 calls / 30m) |
+| **GROUP BY** | `consumer.username` + `route.name` |
+| **THEN** | Critical. Revoke credentials, set limit 0 (I+A) |
+| Plugins | Rate limit, response masking (preventive), `http-log` |
+| Tuning | Separate volume baselines for report/settlement consumers. Prefer size AND count |
+| Safety check | Repeat dummy large responses with a test consumer |
+| DE-like | DE-071, DE-073 on gateway fields |
+
+```text
+WHEN sum(response.size) BY consumer, route
+     WHERE status = 200 AND route IN pii_routes
+WITHIN 30m
+THRESHOLD >= 50MB OR count >= 500
+THEN alert critical "kong_mass_exfil_via_api"
+```
+
+```logql
+sum by (consumer_username) (
+  count_over_time(
+    {log_source="http-log"} |= `/loan/customers`
+    | json
+    | response_status = "200"
+    [3m]
+  )
+)
+```
+
+```logql
+sum by (consumer_username) (
+  sum_over_time(
+    {log_source="http-log"} |= `/loan/customers`
+    | json
+    | response_status = "200"
+    | unwrap response_size [3m]
+  )
+)
+```
+
+---
+
+### KG-API-006 Sensitive route control gap (config / exposure)
+
+| Field | Content |
+|-------|---------|
+| Domain | Exposure — configuration defect |
+| Response · timeline | **F** (config fix), endpoint-style |
+| Severity · window | High, **daily batch or on config change** |
+| Telemetry | Admin API dump, decK state, CP audit (**not** traffic logs) |
+| **WHEN** | Sensitive `paths`/tags missing auth (`key-auth` / `openid-connect` / `jwt`) or `rate-limiting*` |
+| **THEN** | High (config). Close the hole before traffic alerts |
+| Plugins | CI decK lint / policy guard |
+| Safety check | Plant an intentional gap route in staging; confirm one scan hit |
+| DE-like | DE-088-like. Telemetry silence → KG-API-009 / DE-091 |
+
+```text
+sensitive paths/tags ∩ (no key-auth|openid-connect|jwt|basic-auth
+                     OR no rate-limiting|rate-limiting-advanced) → alert
+```
+
+Example path substring: `/loan`. In the sample deck, `/siem-demo/loan/open` is the intentional gap.
+
+---
+
+### KG-API-007 Cross-correlate: auth anomaly then mass success
+
+| Field | Content |
+|-------|---------|
+| Domain | Cross-source correlation |
+| Response · timeline | **C** + **A** + **I**, correlation-style |
+| ATT&CK | T1110 → T1078 → collection (T1005-like API) |
+| Severity · window | **Critical**, **30m** from first event / demo **5m** |
+| **WHEN** | Same `client_ip` (or later same `consumer`): KG-API-001 or 001b, then within 30m KG-API-002 or 005 |
+| **RELATE BY** | `client_ip` → `consumer` after auth success |
+| **THEN** | Critical. Revoke credentials, block IP, temporary route limit. Merge as one incident |
+| Safety check | Replay fail-burst → success → dummy ID walk on one timeline |
+| DE-like | DE-002 + DE-071/073 chain |
+
+```text
+WHEN (auth_burst(ip) OR fail_then_success(ip))
+ AND within 30m mass_success(ip OR consumer_bound_to_ip)
+THEN alert critical "kong_stuffing_then_exfil_chain"
+```
+
+Intersect KG-API-001 IPs with KG-API-005 IPs/consumers in the same window.
+
+---
+
+### KG-API-008 URI / parameter attack signatures (traversal / metachar)
+
+| Field | Content |
+|-------|---------|
+| Domain | Web / WAF / application |
+| Response · timeline | **F**, endpoint-style |
+| ATT&CK | T1190, (metachar) T1059 context |
+| Severity · window | High–critical, **5m** |
+| **WHEN** | `request.uri`/query contains `../`, `%2e%2e`, shell metachar / injection-like patterns, or `request-validator` 400 spikes per IP. Escalate if 200 + large body |
+| **GROUP BY** | `client_ip` + `route.name` |
+| **THEN** | High/critical. WAF / IP block / app review (F) |
+| Plugins | `request-validator`, optional WAF/OPA, `http-log` |
+| Tuning | Exclude normal encoded URLs and approved scanners |
+| Safety check | Harmless traversal-like strings on a non-sensitive test path |
+| DE-like | DE-046, DE-047 |
+
+```logql
+sum(count_over_time(
+  {log_source="http-log"} |= `/siem-demo/`
+  |~ `(?i)(\.\./|%2e%2e|\.\.%2f)`
+  [2m]
+))
+```
+
+---
+
+### KG-API-009 Sensitive-route http-log silence (detection health)
+
+| Field | Content |
+|-------|---------|
+| Domain | Detection health / telemetry |
+| Response · timeline | **J**, endpoint-style |
+| ATT&CK | T1562.001 (visibility loss) |
+| Severity · window | **Critical**, **10m** (ops) / demo **2m · EPS=0 for ≥15s** |
+| Telemetry | Kong http-log EPS in SIEM/Loki, forwarder heartbeat |
+| **WHEN** | Proxy/Admin healthy but http-log for sensitive `route`/workspace is 0 (or collapses) vs expected |
+| **GROUP BY** | `route.name` / `workspace` / pipeline |
+| **THEN** | Critical (status). Restore pipeline + hunt the blind window (J) |
+| Tuning | Distinguish low-traffic routes with heartbeat / synthetic probes |
+| Safety check | Pause staging forwarder only, or replay zero-EPS metric |
+| DE-like | DE-091 (may pair with DE-094 EPS drop) |
+
+```logql
+sum(count_over_time(
+  {log_source="http-log"} |= `/siem-demo/heartbeat`
+  [2m]
+))
+```
+
+Value 0 while Proxy health is OK → fire 009.
 
 ---
 
