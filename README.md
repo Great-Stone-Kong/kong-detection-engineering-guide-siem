@@ -1,6 +1,5 @@
 # Kong SIEM Detection Engineering Guide
 
-Detection criteria: **DETECTION ENGINEERING 2026**  
 한국어: [README_KO.md](./README_KO.md)
 
 Design and validate Kong Gateway API detection rules for SIEM. This repository ships reusable artifacts (decK, LogQL thresholds, Grafana dashboard, replay UI). It does **not** bundle Kong CP/DP, Loki, or Grafana—attach to your existing Gateway and log pipeline.
@@ -90,7 +89,7 @@ Detect on Kong API traffic:
 - Mass successful reads / exfiltration
 - Control-plane gaps and telemetry silence
 
-Rule cards follow DETECTION ENGINEERING 2026 **WHEN / GROUP·RELATE BY / WITHIN / THEN**.  
+Rule cards follow **WHEN / GROUP·RELATE BY / WITHIN / THEN**.  
 LogQL below is a **Loki example**; map the same logic to your SIEM.
 
 ---
@@ -129,7 +128,7 @@ Recommended plugins: `http-log`, auth (`key-auth` / OIDC / JWT), `acl`, `rate-li
 
 ---
 
-## Operating model (DETECTION ENGINEERING 2026)
+## Operating model
 
 | Element | Kong mapping |
 |---------|----------------|
@@ -146,16 +145,16 @@ Safety validation expects: telemetry present, single match, enrichments filled, 
 
 ## Attack stage → KG-API map
 
-| Stage | Threat | DE-like pattern | Rule |
-|-------|--------|-----------------|------|
-| Auth burst | key/token stuffing | DE-001 | KG-API-001 |
-| Fail then success | 401s then 200 | DE-002 | KG-API-001b |
-| Authz flaw | BOLA / ID walk | DE-071 (path IDs) | KG-API-002 |
-| Automation | script UA / 429 | web abuse + DE-071 | KG-API-003, 004, 008 |
-| Exfil | mass 200 / bytes | DE-071, DE-073 | KG-API-005 |
-| Control gap | no auth/RLA on sensitive route | DE-088 | KG-API-006 |
-| Log silence | http-log EPS=0 | DE-091 | KG-API-009 |
-| Chain | stuffing then mass read | DE-002 + DE-071/073 | KG-API-007 |
+| Stage | Threat | Rule |
+|-------|--------|------|
+| Auth burst | key/token stuffing | KG-API-001 |
+| Fail then success | 401s then 200 | KG-API-001b |
+| Authz flaw | BOLA / ID walk | KG-API-002 |
+| Automation | script UA / 429 | KG-API-003, 004, 008 |
+| Exfil | mass 200 / bytes | KG-API-005 |
+| Control gap | no auth/RLA on sensitive route | KG-API-006 |
+| Log silence | http-log EPS=0 | KG-API-009 |
+| Chain | stuffing then mass read | KG-API-007 |
 
 ---
 
@@ -180,7 +179,6 @@ Tune production WITHIN / thresholds after a business baseline.
 | Plugins | `openid-connect` / `key-auth`, `bot-detection`, `ip-restriction` |
 | Tuning | Exclude health-check / monitor IPs. Tie post-deploy key-expiry 401s to change windows |
 | Safety check | Call with bad keys N times → one alert + test tag |
-| DE-like | DE-001 |
 
 ```text
 WHEN count(status IN {401,403}) BY client_ip, route.name
@@ -220,7 +218,6 @@ Fire when the series value is ≥ 10 (demo threshold).
 | Plugins | Auth plugin + `http-log` |
 | Tuning | Suppress normal key rotation / gateway retries |
 | Safety check | Replay fail events then one success → one correlated case |
-| DE-like | DE-002 |
 
 ```text
 WHEN auth_failures(ip) AND success(ip, route) WITHIN 10m
@@ -257,7 +254,6 @@ Sequence correlation belongs to the SIEM rule / correlation engine.
 | Plugins | `acl`, OPA/policy, `request-validator`, rate limit |
 | Tuning | Separate limits/allowlists for batch/settlement consumers. Extract ID via path regex |
 | Safety check | Replay sequential dummy IDs on a test route |
-| DE-like | DE-071 mapped to API path IDs (not DE-046 Path Traversal) |
 
 ```text
 WHEN distinct_count(extract_id(request.uri)) BY consumer
@@ -293,7 +289,6 @@ Aggregate `count_distinct(resource_id)` by `client_ip` or `consumer_username`.
 | Plugins | `rate-limiting-advanced` (`identifier: consumer`) |
 | Tuning | Peak-hour baseline. Prefer consumer over NAT IP |
 | Safety check | Exceed limit with a test consumer → 429 + one alert |
-| DE-like | Web abuse + DE-071 precursor |
 
 ```logql
 sum(count_over_time(
@@ -320,7 +315,6 @@ sum(count_over_time(
 | Plugins | `bot-detection`, `ip-restriction`, `openid-connect` |
 | Tuning | Signed exceptions for approved batch UA / egress IPs |
 | Safety check | Call sensitive route with disallowed UA + test GeoIP |
-| DE-like | Public-edge abuse; URI tampering → KG-API-008 / DE-046·047 |
 
 ```logql
 {log_source="http-log"} |= `/loan/customers`
@@ -347,7 +341,6 @@ In production, AND with GeoIP `country` / `asn`.
 | Plugins | Rate limit, response masking (preventive), `http-log` |
 | Tuning | Separate volume baselines for report/settlement consumers. Prefer size AND count |
 | Safety check | Repeat dummy large responses with a test consumer |
-| DE-like | DE-071, DE-073 on gateway fields |
 
 ```text
 WHEN sum(response.size) BY consumer, route
@@ -393,7 +386,6 @@ sum by (consumer_username) (
 | **THEN** | High (config). Close the hole before traffic alerts |
 | Plugins | CI decK lint / policy guard |
 | Safety check | Plant an intentional gap route in staging; confirm one scan hit |
-| DE-like | DE-088-like. Telemetry silence → KG-API-009 / DE-091 |
 
 ```text
 sensitive paths/tags ∩ (no key-auth|openid-connect|jwt|basic-auth
@@ -416,7 +408,6 @@ Example path substring: `/loan`. In the sample deck, `/siem-demo/loan/open` is t
 | **RELATE BY** | `client_ip` → `consumer` after auth success |
 | **THEN** | Critical. Revoke credentials, block IP, temporary route limit. Merge as one incident |
 | Safety check | Replay fail-burst → success → dummy ID walk on one timeline |
-| DE-like | DE-002 + DE-071/073 chain |
 
 ```text
 WHEN (auth_burst(ip) OR fail_then_success(ip))
@@ -442,7 +433,6 @@ Intersect KG-API-001 IPs with KG-API-005 IPs/consumers in the same window.
 | Plugins | `request-validator`, optional WAF/OPA, `http-log` |
 | Tuning | Exclude normal encoded URLs and approved scanners |
 | Safety check | Harmless traversal-like strings on a non-sensitive test path |
-| DE-like | DE-046, DE-047 |
 
 ```logql
 sum(count_over_time(
@@ -468,7 +458,6 @@ sum(count_over_time(
 | **THEN** | Critical (status). Restore pipeline + hunt the blind window (J) |
 | Tuning | Distinguish low-traffic routes with heartbeat / synthetic probes |
 | Safety check | Pause staging forwarder only, or replay zero-EPS metric |
-| DE-like | DE-091 (may pair with DE-094 EPS drop) |
 
 ```logql
 sum(count_over_time(
@@ -585,4 +574,4 @@ Baseline thresholds for at least one business day.
 | Config holes | decK CI | 006 |
 | Blind spots | pipeline + synthetic probe | 009 |
 
-DETECTION ENGINEERING 2026 WHEN/GROUP/WITHIN/THEN maps cleanly onto Kong `http-log` (`consumer`, `uri`, `status`, `response.size`). Automation changes how fast thresholds trip—not the rule shape.
+WHEN/GROUP/WITHIN/THEN maps cleanly onto Kong `http-log` (`consumer`, `uri`, `status`, `response.size`). Automation changes how fast thresholds trip—not the rule shape.

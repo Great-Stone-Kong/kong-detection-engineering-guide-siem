@@ -1362,7 +1362,7 @@
           "language": "markdown",
           "showLineNumbers": false
         },
-        "content": "**What** — A streak of **401/403** followed by **200** on the same sensitive route\n\n**Why it matters** — Valid credentials obtained after guessing/stuffing, or session takeover (DE-002-like)\n\n**What to look for** — Trend shows fail curve then success(200). Confirm same client_ip timeline in logs\n\n**Response** — Revoke the consumer key, check IdP sessions. If ID walk or bulk follows → **007**",
+        "content": "**What** — A streak of **401/403** followed by **200** on the same sensitive route\n\n**Why it matters** — Valid credentials obtained after guessing/stuffing, or session takeover\n\n**What to look for** — Trend shows fail curve then success(200). Confirm same client_ip timeline in logs\n\n**Response** — Revoke the consumer key, check IdP sessions. If ID walk or bulk follows → **007**",
         "mode": "markdown"
       },
       "title": "Scenario",
@@ -2278,7 +2278,7 @@
           "language": "markdown",
           "showLineNumbers": false
         },
-        "content": "**What** — Repeated **large 200** responses (e.g. `/customers/{id}/bulk`) for the same identity\n\n**Why it matters** — Sensitive data collection via API (DE-071/073 mapped to gateway fields)\n\n**What to look for** — bulk 200 count, response size sum, bulk share vs all 200\n\n**Response** — Disable consumer, RLA 0, estimate impact. With prior auth anomaly → **007**",
+        "content": "**What** — Repeated **large 200** responses (e.g. `/customers/{id}/bulk`) for the same identity\n\n**Why it matters** — Sensitive data collection via API\n\n**What to look for** — bulk 200 count, response size sum, bulk share vs all 200\n\n**Response** — Disable consumer, RLA 0, estimate impact. With prior auth anomaly → **007**",
         "mode": "markdown"
       },
       "title": "Scenario",
@@ -2508,7 +2508,7 @@
           "language": "markdown",
           "showLineNumbers": false
         },
-        "content": "**What** — Sensitive path (loan/customer) with **no auth or rate-limit plugin** (demo: `/siem-demo/loan/open`)\n\n**Why it matters** — Config/exposure gap to close before traffic alerts (DE-088-like). Not the same as KEV (DE-086)\n\n**What to look for** — open-route call logs + UI **Evaluate** Admin scan gaps (auth/limit missing)\n\n**Response** — Enforce auth + RLA via decK/CI. Remove the gap route or attach protective plugins",
+        "content": "**What** — Sensitive path (loan/customer) with **no auth or rate-limit plugin** (demo: `/siem-demo/loan/open`)\n\n**Why it matters** — Config/exposure gap to close before traffic alerts\n\n**What to look for** — open-route call logs + UI **Evaluate** Admin scan gaps (auth/limit missing)\n\n**Response** — Enforce auth + RLA via decK/CI. Remove the gap route or attach protective plugins",
         "mode": "markdown"
       },
       "title": "Scenario",
@@ -2954,7 +2954,7 @@
           "language": "markdown",
           "showLineNumbers": false
         },
-        "content": "**What** — Request URI contains path-manipulation / encoding signatures such as `../`, `%2e%2e`\n\n**Why it matters** — Edge/app attack attempt (DE-046/047-like). Escalate if success or large response\n\n**What to look for** — Signature match count/trend and request.uri in logs\n\n**Response** — validator/WAF and IP block. Normalize paths and review app authz",
+        "content": "**What** — Request URI contains path-manipulation / encoding signatures such as `../`, `%2e%2e`\n\n**Why it matters** — Edge/app attack attempt. Escalate if success or large response\n\n**What to look for** — Signature match count/trend and request.uri in logs\n\n**Response** — validator/WAF and IP block. Normalize paths and review app authz",
         "mode": "markdown"
       },
       "title": "Scenario",
@@ -3170,7 +3170,7 @@
           "language": "markdown",
           "showLineNumbers": false
         },
-        "content": "**What** — Proxy is up but **heartbeat http-log stops** (intentional Heartbeat OFF demo)\n\n**Why it matters** — Detection/telemetry gap (DE-091). Loss of visibility is the incident—not an attack payload\n\n**What to look for** — Heartbeat line = 0 (red) while other siem traffic / proxy may still look healthy\n\n**Response** — Restore http-log/Fluent/Loki and hunt the blind window. Response type **J**",
+        "content": "**What** — Proxy is up but **heartbeat http-log stops** (intentional Heartbeat OFF demo)\n\n**Why it matters** — Detection/telemetry gap. Loss of visibility is the incident—not an attack payload\n\n**What to look for** — Heartbeat line = 0 (red) while other siem traffic / proxy may still look healthy\n\n**Response** — Restore http-log/Fluent/Loki and hunt the blind window. Response type **J**",
         "mode": "markdown"
       },
       "title": "Scenario",

@@ -703,7 +703,7 @@ def build() -> dict:
         "KG-API-001b — Fail then success",
         note=scenario_md(
             what="A streak of **401/403** followed by **200** on the same sensitive route",
-            means="Valid credentials obtained after guessing/stuffing, or session takeover (DE-002-like)",
+            means="Valid credentials obtained after guessing/stuffing, or session takeover",
             signal="Trend shows fail curve then success(200). Confirm same client_ip timeline in logs",
             action="Revoke the consumer key, check IdP sessions. If ID walk or bulk follows → **007**",
         ),
@@ -827,7 +827,7 @@ def build() -> dict:
         "KG-API-005 — Mass / high-volume exfil",
         note=scenario_md(
             what="Repeated **large 200** responses (e.g. `/customers/{id}/bulk`) for the same identity",
-            means="Sensitive data collection via API (DE-071/073 mapped to gateway fields)",
+            means="Sensitive data collection via API",
             signal="bulk 200 count, response size sum, bulk share vs all 200",
             action="Disable consumer, RLA 0, estimate impact. With prior auth anomaly → **007**",
         ),
@@ -858,7 +858,7 @@ def build() -> dict:
         "KG-API-006 — Sensitive route control gap",
         note=scenario_md(
             what="Sensitive path (loan/customer) with **no auth or rate-limit plugin** (demo: `/siem-demo/loan/open`)",
-            means="Config/exposure gap to close before traffic alerts (DE-088-like). Not the same as KEV (DE-086)",
+            means="Config/exposure gap to close before traffic alerts",
             signal="open-route call logs + UI **Evaluate** Admin scan gaps (auth/limit missing)",
             action="Enforce auth + RLA via decK/CI. Remove the gap route or attach protective plugins",
         ),
@@ -918,7 +918,7 @@ def build() -> dict:
         "KG-API-008 — URI traversal / metachar",
         note=scenario_md(
             what="Request URI contains path-manipulation / encoding signatures such as `../`, `%2e%2e`",
-            means="Edge/app attack attempt (DE-046/047-like). Escalate if success or large response",
+            means="Edge/app attack attempt. Escalate if success or large response",
             signal="Signature match count/trend and request.uri in logs",
             action="validator/WAF and IP block. Normalize paths and review app authz",
         ),
@@ -944,7 +944,7 @@ def build() -> dict:
         "KG-API-009 — Heartbeat silence (detection health)",
         note=scenario_md(
             what="Proxy is up but **heartbeat http-log stops** (intentional Heartbeat OFF demo)",
-            means="Detection/telemetry gap (DE-091). Loss of visibility is the incident—not an attack payload",
+            means="Detection/telemetry gap. Loss of visibility is the incident—not an attack payload",
             signal="Heartbeat line = 0 (red) while other siem traffic / proxy may still look healthy",
             action="Restore http-log/Fluent/Loki and hunt the blind window. Response type **J**",
         ),

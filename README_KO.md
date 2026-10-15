@@ -1,6 +1,5 @@
 # Kong - 탐지 엔지니어링(SIEM) 가이드
 
-탐지 기준 정의: **DETECTION ENGINEERING 2026**  
 English: [README.md](./README.md)
 
 Kong Gateway API 트래픽으로 SIEM 탐지 규칙을 설계·검증하기 위한 가이드와 재현 산출물이다.
@@ -95,7 +94,7 @@ Kong을 통과하는 API 트래픽으로 다음을 SIEM에서 탐지한다.
 - 대량 조회·유출
 - 정책·텔레메트리 공백
 
-규칙 카드는 DETECTION ENGINEERING 2026의 **WHEN / GROUP·RELATE BY / WITHIN / THEN** 형식을 따른다.  
+규칙 카드는 **WHEN / GROUP·RELATE BY / WITHIN / THEN** 형식을 따른다.  
 본 문서의 LogQL은 **Loki 환경 예시**이다. 조직 SIEM(Splunk, Elastic, Chronicle 등)에는 동일 논리로 필드 매핑하면 된다.
 
 금융 API의 BOLA·키 스터핑·Consumer 기준 대량 조회는 웹·WAF 중심 원문 규칙에 그대로 없으므로, **동일 카드 서식에 Kong 신호를 붙인 확장 규칙**이다.
@@ -200,7 +199,7 @@ Fluent Bit가 Loki로 넣을 때 JSON이 펼쳐지면 아래처럼 쓰는 경우
 
 ---
 
-## 공통 운영 기준 (DETECTION ENGINEERING 2026)
+## 공통 운영 기준
 
 ### 규칙 로직 네 요소
 
@@ -249,18 +248,16 @@ Fluent Bit가 Loki로 넣을 때 JSON이 펼쳐지면 아래처럼 쓰는 경우
 
 ## 공격 단계 ↔ Kong 탐지 규칙 매핑
 
-DETECTION ENGINEERING 2026 영역·규칙 패턴을 API 계층으로 치환한다. (원문 DE 번호는 1:1이 아니라 유사 패턴)
-
-| 단계 | 위협 요약 | DE 유사 패턴 | Kong 규칙 |
-|------|-----------|--------------|-----------|
-| 1a. 인증 폭주 | 동일 IP의 키·토큰 대입 | DE-001 (다수 실패 건수형) | KG-API-001 |
-| 1b. 실패 후 성공 | 연속 401 뒤 동일 IP/계정 200 | DE-002 | KG-API-001b |
-| 2. 인가 결함 | 고객번호 변조 조회 (BOLA) | DE-071을 path distinct ID로 치환 | KG-API-002 |
-| 3. 자동화·폭주 | 스크립트 UA·해외 IP·한도 근접 | 웹 남용 + DE-071 전조; URI는 DE-046/047 | KG-API-003, 004, 008 |
-| 4. 대량 유출 | 동일 Consumer 대용량·고건수 200 | DE-071, DE-073 | KG-API-005 |
-| 5a. 통제 공백 | 민감 Route에 인증·한도 없음 | DE-088 계열 (설정 결함) | KG-API-006 |
-| 5b. 로그 단절 | 민감 Route http-log EPS=0 | DE-091 | KG-API-009 |
-| 6. 교차 연관 | 401 폭주 직후 대량 200 | DE-002 + DE-071/073 연쇄 | KG-API-007 |
+| 단계 | 위협 요약 | Kong 규칙 |
+|------|-----------|-----------|
+| 1a. 인증 폭주 | 동일 IP의 키·토큰 대입 | KG-API-001 |
+| 1b. 실패 후 성공 | 연속 401 뒤 동일 IP/계정 200 | KG-API-001b |
+| 2. 인가 결함 | 고객번호 변조 조회 (BOLA) | KG-API-002 |
+| 3. 자동화·폭주 | 스크립트 UA·해외 IP·한도 근접 | KG-API-003, 004, 008 |
+| 4. 대량 유출 | 동일 Consumer 대용량·고건수 200 | KG-API-005 |
+| 5a. 통제 공백 | 민감 Route에 인증·한도 없음 | KG-API-006 |
+| 5b. 로그 단절 | 민감 Route http-log EPS=0 | KG-API-009 |
+| 6. 교차 연관 | 401 폭주 직후 대량 200 | KG-API-007 |
 
 ---
 
@@ -285,7 +282,6 @@ DETECTION ENGINEERING 2026 영역·규칙 패턴을 API 계층으로 치환한�
 | 관련 Plugin | `openid-connect` / `key-auth`, `bot-detection`, `ip-restriction` |
 | 튜닝 포인트 | 헬스체크·모니터링 IP 제외. 배포 직후 키 만료 401은 변경 창과 연계 |
 | 안전 검증 | 잘못된 키 N회 호출 → 경보 1회·테스트 태그 |
-| DE 유사 | DE-001 |
 
 ```text
 WHEN count(status IN {401,403}) BY client_ip, route.name
@@ -327,7 +323,6 @@ sum by (client_ip) (
 | 관련 Plugin | 인증 Plugin + `http-log` |
 | 튜닝 포인트 | 정상 키 로테이션·재시도 게이트웨이 억제 |
 | 안전 검증 | 가상 실패 이벤트 후 성공 1건 재생 → 연관 케이스 1건 |
-| DE 유사 | DE-002 |
 
 ```text
 WHEN auth_failures(ip) AND success(ip, route) WITHIN 10m
@@ -366,7 +361,6 @@ THEN alert high "kong_auth_fail_then_success"
 | 관련 Plugin | `acl`, OPA/정책 플러그인, `request-validator`, Rate Limit |
 | 튜닝 포인트 | 배치·정산 Consumer는 별도 한도·허용 목록. Path 정규식으로 ID 세그먼트 추출 |
 | 안전 검증 | 테스트 Route에 연속 더미 ID 조회 재생 |
-| DE 유사 | DE-071을 API path 차원으로 치환. DE-046(Path Traversal)과 별개 |
 
 ```text
 WHEN distinct_count(extract_id(request.uri)) BY consumer
@@ -404,7 +398,6 @@ SIEM에서 `resource_id`의 `count_distinct`를 `client_ip` 또는 `consumer_use
 | 관련 Plugin | `rate-limiting-advanced` (`identifier: consumer`) |
 | 튜닝 포인트 | 영업 마감 피크 기준선. NAT IP는 Consumer 기준 우선 |
 | 안전 검증 | 테스트 Consumer로 한도 초과 호출 → 429·경보 1회 |
-| DE 유사 | 웹 남용 + DE-071 전조 |
 
 **LogQL 예시**
 
@@ -433,7 +426,6 @@ sum(count_over_time(
 | 관련 Plugin | `bot-detection`, `ip-restriction`, `openid-connect` |
 | 튜닝 포인트 | 승인 배치 UA·고정 출구 IP는 서명된 예외 |
 | 안전 검증 | 비허용 UA·테스트 GeoIP로 민감 Route 호출 |
-| DE 유사 | 웹 공개면 남용. URI 조작은 KG-API-008 / DE-046·047 |
 
 **LogQL 예시**
 
@@ -462,7 +454,6 @@ sum(count_over_time(
 | 관련 Plugin | Rate Limit, 응답 마스킹(예방), `http-log` |
 | 튜닝 포인트 | 리포트·정산 배치 Consumer는 용량 기준 분리. size와 건수 AND |
 | 안전 검증 | 테스트 Consumer로 더미 대용량 응답 반복 호출 |
-| DE 유사 | DE-071, DE-073을 Gateway 필드로 치환 |
 
 ```text
 WHEN sum(response.size) BY consumer, route
@@ -512,7 +503,6 @@ sum by (consumer_username) (
 | **THEN** | 높음(구성 결함). 트래픽 경보 전에 구멍 차단 |
 | 관련 Plugin | CI decK lint / 정책 가드 |
 | 안전 검증 | 스테이징에 의도적 공백 Route를 만들고 스캔 1건 확인 |
-| DE 유사 | DE-088 계열. 로그 단절은 KG-API-009 / DE-091 |
 
 **판정 논리 (설정 스캔)**
 
@@ -538,7 +528,6 @@ sum by (consumer_username) (
 | **RELATE BY** | `client_ip` → (인증 성공 시) `consumer` |
 | **THEN** | 심각. 자격증명 폐기·IP 차단·Route 임시 한도. 단일 사고 케이스로 병합 |
 | 안전 검증 | 실패 폭주 → 성공 → 더미 ID 순회를 한 타임라인으로 재생 |
-| DE 유사 | DE-002 + DE-071/073 연쇄 |
 
 ```text
 WHEN (auth_burst(ip) OR fail_then_success(ip))
@@ -564,7 +553,6 @@ THEN alert critical "kong_stuffing_then_exfil_chain"
 | 관련 Plugin | `request-validator`, (선택) WAF/OPA, `http-log` |
 | 튜닝 포인트 | 정상 인코딩 URL·승인 스캐너 제외 |
 | 안전 검증 | 민감 데이터 없는 테스트 경로에 무해한 traversal 유사 문자열 |
-| DE 유사 | DE-046, DE-047 |
 
 **LogQL 예시**
 
@@ -592,7 +580,6 @@ sum(count_over_time(
 | **THEN** | 심각(상태). 플랫폼 팀 복구 + 사각 구간 소급 헌팅 (J) |
 | 튜닝 포인트 | 저트래픽 Route는 하트비트·합성 프로브와 구분 |
 | 안전 검증 | 스테이징 포워더만 일시 중지 또는 0건 지표 재생 |
-| DE 유사 | DE-091 (DE-094 EPS 하락과 병행 가능) |
 
 **LogQL 예시 (하트비트 경로 EPS)**
 
@@ -927,4 +914,4 @@ Overview(위기 점수·KPI)·HTTP status 추이·위협 맵·최근 로그.
 | 구성 구멍 예방 | 설정 CI(decK) | KG-API-006 |
 | 가시성 공백 | 파이프라인·합성 프로브 | KG-API-009 |
 
-DETECTION ENGINEERING 2026의 WHEN/GROUP/WITHIN/THEN 형식을 Kong `http-log`의 `consumer`·`uri`·`status`·`response.size`에 옮기면 API 계층 탐지 규칙을 구성할 수 있다. AI 자동화 공격은 임계치에 더 빨리 도달하게 만들 뿐, 규칙 구조 자체는 바뀌지 않는다.
+WHEN/GROUP/WITHIN/THEN 형식을 Kong `http-log`의 `consumer`·`uri`·`status`·`response.size`에 옮기면 API 계층 탐지 규칙을 구성할 수 있다. AI 자동화 공격은 임계치에 더 빨리 도달하게 만들 뿐, 규칙 구조 자체는 바뀌지 않는다.
